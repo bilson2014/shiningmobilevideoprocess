@@ -122,12 +122,12 @@ public class MainVideo extends Activity {
 					mRecorder.release();
 					handler.removeCallbacks(timeRun);
 					luXiang_bt.setEnabled(false);
-					tingZhi_bt.setEnabled(false);
+					//tingZhi_bt.setEnabled(false);
 					firstBar.setVisibility(View.GONE);
 					mp.stop();
 					mp.release();
 					time_tv.setText(time + "秒视频录制完毕");
-
+					addList();
 					long currentTimeMillis = System.currentTimeMillis();
 
 					Log.i("hh", "" + getFormatedDateTime(demo, nowtime));// 00:15
