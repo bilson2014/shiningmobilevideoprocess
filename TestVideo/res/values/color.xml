@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="green">#19aca0</color>
+	<color name="black">#000000</color>
+	<color name="white">#FFFFFF</color>
+	<color name="lightgreen">#1cbbc1</color>
+	<color name="lightblack">#535353</color>
+	<color name="line">#dcdada</color>
+	<color name="blue">#1cc1c0</color>
+	<color name="lightgray">#4a4a4a</color>
+	<color name="gray">#CCC</color>
+	<color name="dialog">#b9b9c2</color>
+	<color name="lu">#8f8f9c</color>
+    <color name="detail">#dcdbdb</color>
+	
+	
+	
+	
+	
+	
+	
+</resources>
