@@ -79,7 +79,7 @@ public class MainVideo extends Activity {
 	private int cameraIndex = 0;
 	private testJNIapi tjni = new testJNIapi();
 	final static String sdcardPath = Environment.getExternalStorageDirectory()
-			+ "/shinyring/";
+			+ "/ShinyRing/";
 	// private TextView tv;
 
 	// private FrameLayout.LayoutParams flp;
@@ -719,6 +719,14 @@ public class MainVideo extends Activity {
 
 				tjni.ReplaceAudio(sdcardPath + "xxx.mp4", path);
 			}
+			recording = false;
+			flag = false;
+			
+			myCamera.stopPreview();
+			myCamera.release();
+			myCamera=null;
+			
+			
 			Toast.makeText(MainVideo.this, "请到sd卡根目录shinyring文件下查看xxx.mp4", Toast.LENGTH_SHORT).show();
 		}
 	}
