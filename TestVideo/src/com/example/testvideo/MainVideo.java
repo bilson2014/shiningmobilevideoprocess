@@ -52,7 +52,7 @@ public class MainVideo extends Activity {
 	private MediaRecorder mRecorder;
 	private boolean recording; // 记录是否正在录像,fasle为未录像, true 为正在录像
 	private File videoFolder, videFile; // 存放视频的文件夹:视频文件
-	private Handler handler;
+	private Handler timeControlHandler;
 	private int time, count, deltime; // 时间
 	private Camera myCamera; // 相机声明
 	private SurfaceHolder holder;
@@ -96,7 +96,7 @@ public class MainVideo extends Activity {
 			deltime++;
 			flag = true;
 
-			handler.postDelayed(timeRun, 1000);
+			timeControlHandler.postDelayed(timeRun, 1000);
 			time++;
 			time_tv.setText(time + "秒");
 
@@ -104,23 +104,23 @@ public class MainVideo extends Activity {
 				// 设置主进度条的当前值
 				firstBar.setProgress(firstBar.getProgress() + 7);
 				// 设置第二进度条的当前值
-				firstBar.setSecondaryProgress(firstBar.getProgress() + 10);
+				//firstBar.setSecondaryProgress(firstBar.getProgress() + 10);
 				// 因为默认的进度条无法显示进行的状态
 				// secondBar.setProgress(i);
-				Log.i("bar", "" + firstBar.getProgress());
+				//Log.i("bar", "" + firstBar.getProgress());
 
 				if (firstBar.getProgress() >= 100) {
 					Log.i("bar", "下载完毕");
 					flag = false;
-					nowtime = mp.getCurrentPosition();
-					String f = "/sdcard/shinyring/sr" + count + ".mp4";
-					String s = "/sdcard/shinyring/sr" + count + ".mp4";
-					Log.i("TTT", s);
-					getPatch(f, s);
+					//nowtime = mp.getCurrentPosition();
+					//String f = "/sdcard/shinyring/sr" + count + ".mp4";
+					//String s = "/sdcard/shinyring/sr" + count + ".mp4";
+					//Log.i("TTT", s);
+					//getPatch(f, s);
 
 					mRecorder.stop();
 					mRecorder.release();
-					handler.removeCallbacks(timeRun);
+					timeControlHandler.removeCallbacks(timeRun);
 					luXiang_bt.setEnabled(false);
 					//tingZhi_bt.setEnabled(false);
 					firstBar.setVisibility(View.GONE);
@@ -128,11 +128,13 @@ public class MainVideo extends Activity {
 					mp.release();
 					time_tv.setText(time + "秒视频录制完毕");
 					addList();
-					long currentTimeMillis = System.currentTimeMillis();
+					
+					
+					//long currentTimeMillis = System.currentTimeMillis();
 
-					Log.i("hh", "" + getFormatedDateTime(demo, nowtime));// 00:15
-					Log.i("oo", "" + nowtime);// 15380
-					Log.i("mm", "" + currentTimeMillis);// 现在的时间戳
+					//Log.i("hh", "" + getFormatedDateTime(demo, nowtime));// 00:15
+					//Log.i("oo", "" + nowtime);// 15380
+					//Log.i("mm", "" + currentTimeMillis);// 现在的时间戳
 					// finish();
 
 				}
@@ -204,6 +206,8 @@ public class MainVideo extends Activity {
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.activity_main);
 
+		
+		//STEP 1. 由preview尺寸算出video尺寸
 		myCamera = Camera.open();
 		parameters = myCamera.getParameters();// 获得相机参数
 
@@ -214,8 +218,8 @@ public class MainVideo extends Activity {
 		w = s.width;
 		h = s.height;
 
-		Log.i("lll", w + "w");
-		Log.i("lll", h + "h");
+		//Log.i("lll", w + "w");
+		//Log.i("lll", h + "h");
 
 		double needSize = (w / h);
 
@@ -224,32 +228,49 @@ public class MainVideo extends Activity {
 		vHeight = (videoSize.first).intValue();
 		vWidth = (videoSize.second).intValue();
 
-		Log.i("lll", vHeight + "vh");
-		Log.i("lll", vWidth + "vw");
+		//Log.i("lll", vHeight + "vh");
+		//Log.i("lll", vWidth + "vw");
 
 		myCamera.release();
 		myCamera = null;
 
+		//STEP 2. 绑定控件
 		// 初始化控件
 		init();
-		// 删除保留
+		// 绑定重置事件
 		DelClick();
-		// 结束时
+		// 绑定合成事件
 		EndClick();
+		// 初始化时间控件
+		timeControlHandler = new Handler();
 
+		
+		//STEP 3. 初始化音乐播放器
 		Intent intent = this.getIntent();
 		path = intent.getStringExtra("path");
 
-		Log.i("sss", path + "path");
+		//Log.i("sss", path + "path");
 
 		mp = new MediaPlayer();
 
+		
+		
+		//STEP 4. 绑定拍摄事件
 		ButtonListener b = new ButtonListener();
 		luXiang_bt.setOnClickListener(b);
 		luXiang_bt.setOnTouchListener(b);
-		handler = new Handler();
+		
+		
+		//STEP 5. 设置SurfaceView参数
 		holder = surfaceView.getHolder();
+		// 设置surfaceView不管理的缓冲区
+		surfaceView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+		// 设置surfaceView分辨率
+		surfaceView.getHolder().setFixedSize(720, 1230);
 
+		
+		
+		//STEP 6. 生成输出文件夹
 		// 判断sd卡是否存在
 		boolean sdCardExist = Environment.getExternalStorageState().equals(
 				android.os.Environment.MEDIA_MOUNTED);
@@ -270,19 +291,15 @@ public class MainVideo extends Activity {
 				videoFolder.mkdirs();
 			}
 
-			// 设置surfaceView不管理的缓冲区
-			surfaceView.getHolder().setType(
-					SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-			// 设置surfaceView分辨率
-			surfaceView.getHolder().setFixedSize(720, 1230);
-
+			
 		}
-
 		else {
-			Log.i("jkh", "sdknf");
+			Log.i("err", "SD卡不存在");
 		}
 
-		// 添加回调
+		
+		
+		//STEP 7. Preview回调
 		holder.addCallback(new SurfaceHolder.Callback() {
 
 			@SuppressLint("NewApi")
@@ -439,7 +456,7 @@ public class MainVideo extends Activity {
 
 	@Override
 	protected void onDestroy() {
-		handler.removeCallbacks(timeRun);
+		timeControlHandler.removeCallbacks(timeRun);
 		if (mRecorder != null) {
 
 			mRecorder.release();
@@ -509,7 +526,7 @@ public class MainVideo extends Activity {
 							// 声明视频文件对象
 							int op = count + 1;
 							time_tv.setVisibility(View.VISIBLE); // 设置文本框可见
-							handler.post(timeRun); // 调用Runable
+							timeControlHandler.post(timeRun); // 调用Runable
 							recording = true; // 改变录制状态为正在录制
 							fs = sdcardPath + "sr" + op + ".mp4";
 
@@ -586,7 +603,7 @@ public class MainVideo extends Activity {
 						Log.i("oo", "" + nowtime);
 						// mRecorder.stop();
 						// mRecorder.release();
-						handler.removeCallbacks(timeRun);
+						timeControlHandler.removeCallbacks(timeRun);
 						time_tv.setVisibility(View.GONE);
 						int videoTimeLength = time;
 						times = false;
@@ -686,7 +703,7 @@ public class MainVideo extends Activity {
 		}
 	}
 
-	// 结束
+	// 合成
 	private void EndClick() {
 
 		this.tingZhi_bt.setOnClickListener(new ReButtonListener2());
@@ -781,11 +798,11 @@ public class MainVideo extends Activity {
 
 	}
 
-	// 双击删除
+	// 双击重置
 	public void secondDel() {
 
 		if ((System.currentTimeMillis() - clickTime) > 2000) {
-			Toast.makeText(getApplicationContext(), "再按一次删除",
+			Toast.makeText(getApplicationContext(), "再按一次重置",
 					Toast.LENGTH_SHORT).show();
 			clickTime = System.currentTimeMillis();
 		}
