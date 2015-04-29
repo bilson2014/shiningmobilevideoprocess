@@ -43,6 +43,7 @@ public class PreviewSizeElement {
 		this.pri = pri;
 	}
 	
+	@Override
 	public String toString()
 	{
 		return "H:"+this.height+";W:"+this.width+";P:"+this.pri;

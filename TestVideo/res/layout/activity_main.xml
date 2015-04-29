@@ -20,7 +20,7 @@
         android:progressDrawable="@drawable/progress_style" />
 
     <FrameLayout
-        android:id="@+id/fl"
+        android:id="@+id/shining_video_fl"
         android:layout_width="fill_parent"
         android:layout_height="100dp"
         android:layout_alignParentBottom="true"
@@ -33,7 +33,7 @@
 
 
                <Button
-                android:id="@+id/tingZhi_bt"
+                android:id="@+id/shining_video_stop_bt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentRight="true"
@@ -42,7 +42,7 @@
         
 
                <Button
-                android:id="@+id/luXiang_bt"
+                android:id="@+id/shining_video_recorder_bt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_toLeftOf="@+id/del_bt"
@@ -50,10 +50,10 @@
             
              
                                   <Button
-                android:id="@+id/del_bt"
+                android:id="@+id/shining_video_reset_bt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                 android:layout_toLeftOf="@id/tingZhi_bt"
+                 android:layout_toLeftOf="@id/shining_video_stop_bt"
                 android:text="@string/del" /> 
                 
            

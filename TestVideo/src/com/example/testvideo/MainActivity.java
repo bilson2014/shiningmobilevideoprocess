@@ -2,7 +2,6 @@ package com.example.testvideo;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,11 +15,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
 class Mp3Filter implements FilenameFilter {
+	@Override
 	public boolean accept(File dir, String name) {
 		return (name.endsWith(".mp3"));
 	}
@@ -66,14 +64,6 @@ public class MainActivity extends ListActivity {
 			intent.putExtra("path", MEDIA_PATH + songs.get(position));
 			startActivity(intent);
 		    
-//		try {
-//
-//			mp.reset();
-//			mp.setDataSource(MEDIA_PATH + songs.get(position));
-//			mp.prepare();
-//			mp.start();
-//		} catch (IOException e) {
-//			Log.v(getString(R.string.app_name), e.getMessage());
-//		}
+
 	}
 }
