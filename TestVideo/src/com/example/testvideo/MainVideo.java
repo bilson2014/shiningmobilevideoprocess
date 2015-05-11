@@ -1,6 +1,7 @@
 package com.example.testvideo;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
@@ -12,8 +13,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.hardware.Camera;
-import android.hardware.Camera.AutoFocusCallback;
-import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -40,7 +39,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.fucfuc.testJNIapi;
-import com.example.tools.FileElement;
 import com.example.tools.PreviewSizeComparator;
 import com.example.tools.PreviewSizeElement;
 
@@ -51,7 +49,7 @@ public class MainVideo extends Activity {
 	private TextView time_tv; // 显示时间的文本框
 	private MediaRecorder mRecorder;
 	private boolean recording; // 记录是否正在录像,fasle为未录像, true 为正在录像
-	private File videoFolder, videFile; // 存放视频的文件夹:视频文件
+	private File videoFolder, videoFile; // 存放视频的文件夹:视频文件
 	private Handler timeControlHandler;
 	private int time, VideoCount, deltime; // 时间//视频总个数//需要删除的时间
 	private Camera myCamera; // 相机声明
@@ -59,20 +57,19 @@ public class MainVideo extends Activity {
 									// 以及在surface上编辑像素，和监视surace的改变。这个接口通常通过SurfaceView类实现
 	private ProgressBar firstBar = null;// 进度条
 	private Boolean flag = true;
-	private String MusicPath;
+	private String musicPath;
 	private MediaPlayer mp = new MediaPlayer();
 	private int nowtime;
-	private boolean times = true;
-	private File f;
-	private File[] files;
+	private boolean musicNotStarted = true; //判断录像时音乐是初始化(true)还是已经开始播放(false)
+
 	private FrameLayout framelayout;
-	private int widths, vHeight, vWidth;
-	private double realh, priview_width, priview_height;
+	private int widths, vHeight, vWidth; //计算video尺寸
+	private double realh, priview_width, priview_height; //计算preview尺寸
 	private Camera.Parameters parameters;
 	private PreviewSizeElement[] pselist;
-	private List<FileElement> lf = new ArrayList<FileElement>();
-	private List list = new ArrayList();
-	private long clickTime = 0;
+	
+	private List list = new ArrayList(); //视频列表
+	private long clickTime = 0; //双击判断辅助
 	private testJNIapi tjni = new testJNIapi();
 	final static String sdcardPath = Environment.getExternalStorageDirectory()
 			+ "/ShinyRing/";
@@ -82,6 +79,7 @@ public class MainVideo extends Activity {
 	// private TextView tv;
 	// private FrameLayout.LayoutParams flp;
 	// private Camera.Parameters parameters = myCamera.getParameters();
+	// private List<FileElement> lf = new ArrayList<FileElement>();
 
 	/**
 	 * 录制过程中,时间变化,进度条变化，到达拍摄时间的处理
@@ -218,7 +216,7 @@ public class MainVideo extends Activity {
 
 		// STEP 3. 初始化音乐播放器组件
 		Intent intent = this.getIntent();
-		MusicPath = intent.getStringExtra("path");
+		musicPath = intent.getStringExtra("path");
 		mp = new MediaPlayer();
 
 		// 初始化时间控件 使用handler来进行时间点操作
@@ -229,13 +227,12 @@ public class MainVideo extends Activity {
 		Recorder_bt.setOnClickListener(b);
 		Recorder_bt.setOnTouchListener(b);
 
-		// STEP 5. 设置SurfaceView参数
-		holder = surfaceView.getHolder();
 		// 设置surfaceView不管理的缓冲区
-		surfaceView.getHolder()
-				.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+		//surfaceView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		// 设置surfaceView分辨率
-		surfaceView.getHolder().setFixedSize(720, 1230);
+		//surfaceView.getHolder().setFixedSize(720, 1230);
+		// STEP 5. 清理log
+		clearLog();
 
 		// STEP 6. 生成输出文件夹
 		// 判断sd卡是否存在
@@ -264,6 +261,7 @@ public class MainVideo extends Activity {
 
 		// STEP 7. Preview回调
 		// 当Surface第一次创建后会立即调用该函数。程序可以在该函数中做些和绘制界面相关的初始化工作，一般情况下都是在另外的线程来绘制界面，所以不在这个函数中绘制Surface实现预览。
+		holder = surfaceView.getHolder();
 		holder.addCallback(new SurfaceHolder.Callback() {
 
 			@SuppressLint("NewApi")
@@ -327,6 +325,12 @@ public class MainVideo extends Activity {
 			myCamera.stopPreview();
 			myCamera.release();
 		}
+		mp.release();
+		
+		mRecorder =null;
+		myCamera = null;
+		mp = null;
+		
 		super.onDestroy();
 	}
 
@@ -346,46 +350,51 @@ public class MainVideo extends Activity {
 			if (v.getId() == R.id.shining_video_recorder_bt) {
 				if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
+					
+					
 					if (!recording) {
 						try {
 							// 关闭预览并释放资源
 							deltime = 0;
-
+                      
 							// 第一次播放音乐时reset组件
-							if (times != false) {
+							if (musicNotStarted) {
 								mp.reset();
-								mp.setDataSource(MusicPath);
+								mp.setDataSource(musicPath);
 								mp.prepare();
 
 							}
 
+							// 重置media recorder
 							mRecorder = new MediaRecorder();
 							mRecorder.reset();
-
 							mRecorder.setCamera(myCamera);
-
-							files = f.listFiles();
+							
+							// 创建输出文件 - 为ShinyRing下面的总文件数目+1
+							File f = new File( Environment.getExternalStorageDirectory()+"/ShinyRing/");
+							File[] files=f.listFiles();
 							VideoCount = files.length;
+							int op = VideoCount + 1;
+							fs = sdcardPath + "sr" + op + ".mp4";
+							videoFile = new File(videoFolder.getAbsoluteFile()
+									+ File.separator + "sr" + op + ".mp4");
+							videoFile.createNewFile();
+							
+
+
+							//Log.i("opop", VideoCount+"opop");
 							// 获取当前时间,作为视频文件的文件名
 							// String nowTime = java.text.MessageFormat.format(
 							// "{0,date,yyyyMMdd_HHmmss}",
 							// new Object[] { new java.sql.Date(System
 							// .currentTimeMillis()) });
-							// 声明视频文件对象
-							int op = VideoCount + 1;
 							time_tv.setVisibility(View.VISIBLE); // 设置文本框可见
 							timeControlHandler.post(timeRun); // 调用Runable
-							recording = true; // 改变录制状态为正在录制
-							fs = sdcardPath + "sr" + op + ".mp4";
-
-							videFile = new File(videoFolder.getAbsoluteFile()
-									+ File.separator + "sr" + op + ".mp4");
-							// 创建此视频文件
-							videFile.createNewFile();
+							
+							
 
 							mRecorder.setPreviewDisplay(surfaceView.getHolder()
 									.getSurface()); // 预览
-
 							mRecorder
 									.setVideoSource(MediaRecorder.VideoSource.CAMERA); // 视频源
 							mRecorder.setOrientationHint(90);
@@ -408,13 +417,16 @@ public class MainVideo extends Activity {
 							mRecorder
 									.setAudioEncoder(MediaRecorder.AudioEncoder.AAC); // 音频编码//原ARM_NB
 							mRecorder.setMaxDuration(3000000);// 原1800000
-							mRecorder.setOutputFile(videFile.getAbsolutePath());
+							mRecorder.setOutputFile(videoFile.getAbsolutePath());
 							mRecorder.prepare(); // 准备录像
 
+							
 							mRecorder.start(); // 开始录像
 
 							mp.start(); // start audio play
 
+							recording = true; // 改变录制状态为正在录制
+							
 							// 延时防止Recorder组件崩溃 使用Button机制时 可以去除 touch时必须添加
 							try {
 								Thread.sleep(500);
@@ -440,22 +452,27 @@ public class MainVideo extends Activity {
 				if (event.getAction() == MotionEvent.ACTION_UP) {
 
 					if (recording) {
-
+						
+						mp.pause();
+						writeLog("Stop At:"+mp.getCurrentPosition()+'\n');
+						
+						
+						mRecorder.stop();
+						mRecorder.release();
+						
 						addList();
 						firstBar.setSecondaryProgress(firstBar.getProgress() - 10);
 						int op = VideoCount + 1;
 						nowtime = mp.getCurrentPosition();
 						timeControlHandler.removeCallbacks(timeRun);
 						time_tv.setVisibility(View.GONE);
-						times = false;
+						musicNotStarted = false;
 						recording = false;
 						flag = false;
 						int ftime = 15 - time;
 						Toast.makeText(MainVideo.this, "您还可以拍摄" + ftime + "秒",
 								Toast.LENGTH_LONG).show();
-						mp.pause();
-						mRecorder.stop();
-						mRecorder.release();
+						
 					}
 					// 释放摄像头
 					if (myCamera != null) {
@@ -501,6 +518,7 @@ public class MainVideo extends Activity {
 		Reset_bt = (Button) findViewById(R.id.shining_video_reset_bt);
 		time_tv = (TextView) findViewById(R.id.time);
 		framelayout = (FrameLayout) findViewById(R.id.shining_video_fl);
+		
 
 		WindowManager wm = this.getWindowManager();
 		widths = wm.getDefaultDisplay().getWidth();
@@ -515,6 +533,7 @@ public class MainVideo extends Activity {
 			realh = (priview_height / priview_width);
 		}
 
+		//当前只考虑surfaceview height > width情况，基于长宽比和width算出height(realh)
 		int sh = (int) (realh * widths);
 
 		// surfaceview大小
@@ -575,14 +594,21 @@ public class MainVideo extends Activity {
 		// }
 		//
 		// file.exists();
-		File file;
-		for (int i = 0; i < list.size(); i++) {
-			String videoPath = list.get(i).toString();
-			file = new File(videoPath);
-			if (file.exists()) {
-				file.delete();
-			}
-		}
+//		File file;
+//		for (int i = 0; i < list.size(); i++) {
+//			String videoPath = list.get(i).toString();
+//			file = new File(videoPath);
+//			if (file.exists()) {
+//				file.delete();
+//			}
+//		}
+		recording = false;
+		flag = false;
+		mp.release();
+		mp=null;
+		myCamera.stopPreview();
+		myCamera.release();
+		myCamera = null;
 		this.finish();
 	}
 
@@ -626,20 +652,21 @@ public class MainVideo extends Activity {
 
 				testJNIapi.cropVideo(sdcardPath + "xxx.mp4", vHeight + "");
 
-				testJNIapi.ReplaceAudio(sdcardPath + "xxx.mp4", MusicPath);
+				testJNIapi.ReplaceAudio(sdcardPath + "xxx.mp4", musicPath);
 			} else {
 				str = list.get(0).toString();
 				File file = new File(str);
 				file.renameTo(new File(sdcardPath + "xxx.mp4"));
 				testJNIapi.cropVideo(sdcardPath + "xxx.mp4", vHeight + "");
-				testJNIapi.ReplaceAudio(sdcardPath + "xxx.mp4", MusicPath);
+				testJNIapi.ReplaceAudio(sdcardPath + "xxx.mp4", musicPath);
 			}
 			recording = false;
 			flag = false;
 			myCamera.stopPreview();
 			myCamera.release();
 			myCamera = null;
-
+			mp.release();
+			mp = null;
 			Toast.makeText(MainVideo.this, "请到sd卡根目录shinyring文件下查看xxx.mp4",
 					Toast.LENGTH_SHORT).show();
 		}
@@ -677,12 +704,49 @@ public class MainVideo extends Activity {
 	}
 
 	// 日志生产
-	public void createLog() {
+	public void writeLog(String s) {
 
-		File file = new File("sdcard/com.log.ShinyRingVideo");
-		file.mkdirs();
+		try{
+			File file = new File("sdcard/com.log.ShinyRingVideo.txt");
+			
+			if(!file.exists())
+			{
+				file.createNewFile();
+			}
+		
+			FileWriter fw = new FileWriter(file,true);
+			/*
+			char[] prefix= {'s','t','o','p',' ','a','t',':'};
+			for(int i=0;i<prefix.length;i++)
+			{
+				fw.append(prefix[i]);
+			}*/
+			
+			for(int i=0;i<s.length();i++)
+			{	
+				fw.append(s.charAt(i));
+			}
+			
+			fw.close();
+			
+		}catch(IOException ioe)
+		{
+			ioe.printStackTrace();
+		}
 	}
 
+	
+	//清log
+	public void clearLog()
+	{
+		File file = new File("sdcard/com.log.ShinyRingVideo.txt");
+			
+		if(file.exists())
+			file.delete();
+			
+		
+	}
+	
 	// 测试用方法
 	public void getPatch(String f, String s) {
 		Log.i("sssd", f + "");
@@ -710,6 +774,7 @@ public class MainVideo extends Activity {
 		else {
 
 			clickTime = 0;
+			clearLog();
 			ResetFile();
 		}
 
